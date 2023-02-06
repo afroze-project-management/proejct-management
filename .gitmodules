@@ -1,0 +1,15 @@
+[submodule "api-gateway"]
+	path = api-gateway
+	url = https://github.com/afroze-project-management/api-gateway
+[submodule "frontend-app"]
+	path = frontend-app
+	url = https://github.com/afroze-project-management/frontend-app
+[submodule "discovery-server"]
+	path = discovery-server
+	url = https://github.com/afroze-project-management/discovery-server
+[submodule "company-api"]
+	path = company-api
+	url = https://github.com/afroze-project-management/company-api
+[submodule "project-api"]
+	path = project-api
+	url = https://github.com/afroze-project-management/project-api
