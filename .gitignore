@@ -1,2 +1,5 @@
 /build/
 /.gradle/
+/.idea/sonarlint/
+/.idea/shelf/
+/.idea/inspectionProfiles/
