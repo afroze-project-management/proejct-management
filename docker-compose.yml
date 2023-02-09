@@ -1,7 +1,39 @@
+version: '3.4'
+
 services:
+  discovery-server:
+    container_name: discovery-server
+    image: discovery-server:${SERVICE_VERSION}
+    build:
+      context: discovery-server
+      dockerfile: dockerfile
+    ports:
+      - ${DISCOVERY_SERVER_PORT}:${DISCOVERY_SERVER_PORT}
+    environment:
+      - DISCOVERY_SERVER_PORT=${DISCOVERY_SERVER_PORT}
+    networks:
+      - project-management-network
+
+  api-gateway:
+    container_name: api-gateway
+    image: api-gateway:${SERVICE_VERSION}
+    build:
+      context: api-gateway
+      dockerfile: dockerfile
+    ports:
+      - ${API_GATEWAY_PORT}:${API_GATEWAY_PORT}
+    environment:
+      - API_GATEWAY_PORT=${API_GATEWAY_PORT}
+      - ISSUER_URI=${ISSUER_URI}
+      - DISCOVERY_SERVER_ZONE=${DISCOVERY_SERVER_ZONE}
+    networks:
+      - project-management-network
+    links:
+      - discovery-server
+
   company-api:
     container_name: company-api
-    image: company-api:${VERSION}
+    image: company-api:${SERVICE_VERSION}
     build:
       context: company-api
       dockerfile: dockerfile
@@ -10,53 +42,74 @@ services:
     networks:
       - project-management-network
     environment:
-      server.port: ${COMPANY_API_PORT}
-      spring.datasource.url: jdbc:postgresql://company-db:${COMPANY_DB_PORT}/${COMPANY_DB_NAME}
-      eureka.client.serviceUrl.defaultZone: http://${DISCOVERY_SERVER_HOSTNAME}:${DISCOVERY_SERVER_PORT}/eureka/
+      - COMPANY_API_PORT=${COMPANY_API_PORT}
+      - JWK_SET_URI=${JWK_SET_URI}
+      - ISSUER_URI=${ISSUER_URI}
+      - DISCOVERY_SERVER_ZONE=${DISCOVERY_SERVER_ZONE}
+      - COMPANY_DB_SOURCE=${COMPANY_DB_SOURCE}
+      - COMPANY_DB_USERNAME=${COMPANY_DB_USERNAME}
+      - COMPANY_DB_PASSWORD=${COMPANY_DB_PASSWORD}
 
-  api-gateway:
-    container_name: api-gateway
-    image: api-gateway:${VERSION}
+  project-api:
+    container_name: project-api
+    image: project-api:${SERVICE_VERSION}
     build:
-      context: api-gateway
+      context: project-api
       dockerfile: dockerfile
     ports:
-      - ${API_GATEWAY_PORT}:${API_GATEWAY_PORT}
+      - ${PROJECT_API_PORT}:${PROJECT_API_PORT}
     networks:
       - project-management-network
     environment:
-      server.port: ${API_GATEWAY_PORT}
-      eureka.client.serviceUrl.defaultZone: http://${DISCOVERY_SERVER_HOSTNAME}:${DISCOVERY_SERVER_PORT}/eureka/
-
-  discovery-server:
-    container_name: discovery-server
-    image: discovery-server:${VERSION}
-    build:
-      context: discovery-server
-      dockerfile: dockerfile
-    ports:
-      - ${DISCOVERY_SERVER_PORT}:${DISCOVERY_SERVER_PORT}
-    networks:
-      - project-management-network
+      - PROJECT_API_PORT=${PROJECT_API_PORT}
+      - JWK_SET_URI=${JWK_SET_URI}
+      - ISSUER_URI=${ISSUER_URI}
+      - DISCOVERY_SERVER_ZONE=${DISCOVERY_SERVER_ZONE}
+      - PROJECT_DB_SOURCE=${PROJECT_DB_SOURCE}
+      - PROJECT_DB_USERNAME=${PROJECT_DB_USERNAME}
+      - PROJECT_DB_PASSWORD=${PROJECT_DB_PASSWORD}
 
   company-db:
     image: postgres:latest
     restart: always
     environment:
-      - POSTGRES_USER=${COMPANY_DB_USER}
-      - POSTGRES_PASSWORD=${COMPANY_DB_PASSWORD}
-      - POSTGRES_DB=${COMPANY_DB_NAME}
+      - POSTGRES_USER=developer
+      - POSTGRES_PASSWORD=dev123
+      - POSTGRES_DB=project_management_company
+      - PGPORT=${COMPANY_DB_PORT}
     ports:
-      - ${COMPANY_DB_PORT}:5432
+      - ${COMPANY_DB_PORT}:${COMPANY_DB_PORT}
     volumes:
-      - //C/tools/project-data/projectmanagement:/var/lib/postgresql/data
+      - //C/tools/project-data/projectmanagement/company:/var/lib/postgresql/data
+    networks:
+      - project-management-network
+
+  project-db:
+    image: postgres:latest
+    restart: always
+    environment:
+      - POSTGRES_USER=developer
+      - POSTGRES_PASSWORD=dev123
+      - POSTGRES_DB=project_management_project
+      - PGPORT=${PROJECT_DB_PORT}
+    ports:
+      - ${PROJECT_DB_PORT}:${PROJECT_DB_PORT}
+    volumes:
+      - //C/tools/project-data/projectmanagement/project:/var/lib/postgresql/data
+    networks:
+      - project-management-network
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    restart: always
+    ports:
+      - 9411:9411
     networks:
       - project-management-network
 
 networks:
   project-management-network:
     driver: bridge
-
 #volumes:
 #  company-db-vol:
 #    driver: local
