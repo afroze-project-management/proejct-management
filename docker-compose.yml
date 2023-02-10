@@ -28,8 +28,6 @@ services:
       - DISCOVERY_SERVER_ZONE=${DISCOVERY_SERVER_ZONE}
     networks:
       - project-management-network
-    links:
-      - discovery-server
 
   company-api:
     container_name: company-api
@@ -49,6 +47,7 @@ services:
       - COMPANY_DB_SOURCE=${COMPANY_DB_SOURCE}
       - COMPANY_DB_USERNAME=${COMPANY_DB_USERNAME}
       - COMPANY_DB_PASSWORD=${COMPANY_DB_PASSWORD}
+      - ZIPKIN_SERVER_URL=${ZIPKIN_SERVER_URL}/
 
   project-api:
     container_name: project-api
@@ -68,8 +67,10 @@ services:
       - PROJECT_DB_SOURCE=${PROJECT_DB_SOURCE}
       - PROJECT_DB_USERNAME=${PROJECT_DB_USERNAME}
       - PROJECT_DB_PASSWORD=${PROJECT_DB_PASSWORD}
+      - ZIPKIN_SERVER_URL=${ZIPKIN_SERVER_URL}
 
   company-db:
+    container_name: company-db
     image: postgres:latest
     restart: always
     environment:
@@ -80,11 +81,12 @@ services:
     ports:
       - ${COMPANY_DB_PORT}:${COMPANY_DB_PORT}
     volumes:
-      - //C/tools/project-data/projectmanagement/company:/var/lib/postgresql/data
+      - C:\tools\project-data\projectmanagement\company:/var/lib/postgresql/data
     networks:
       - project-management-network
 
   project-db:
+    container_name: project-db
     image: postgres:latest
     restart: always
     environment:
@@ -95,11 +97,12 @@ services:
     ports:
       - ${PROJECT_DB_PORT}:${PROJECT_DB_PORT}
     volumes:
-      - //C/tools/project-data/projectmanagement/project:/var/lib/postgresql/data
+      - C:\tools\project-data\projectmanagement\project:/var/lib/postgresql/data
     networks:
       - project-management-network
 
-  zipkin:
+  zipkin-server:
+    container_name: zipkin-server
     image: openzipkin/zipkin:latest
     restart: always
     ports:
@@ -110,6 +113,3 @@ services:
 networks:
   project-management-network:
     driver: bridge
-#volumes:
-#  company-db-vol:
-#    driver: local
