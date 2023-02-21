@@ -1,0 +1,350 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: discovery-server
+  name: discovery-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: discovery-server
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: discovery-server
+    spec:
+      containers:
+        - image: afroze9/discovery-server
+          name: discovery-server
+          resources: {}
+          env:
+            - name: DISCOVERY_SERVER_PORT
+              value: '8761'
+            - name: EUREKA_INSTANCE_PREFER_IP_ADDRESS
+              value: 'true'
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: api-gateway
+  name: api-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      dnsConfig:
+        options:
+          - name: single-request-reopen
+      containers:
+        - image: afroze9/api-gateway
+          name: api-gateway
+          resources: {}
+          env:
+            - name: API_GATEWAY_PORT
+              value: '8012'
+            - name: ISSUER_URI
+              value: https://afrozeprojectmanagement.us.auth0.com/
+            - name: DISCOVERY_SERVER_ZONE
+              value: http://discovery-server:8761/eureka
+            - name: EUREKA_INSTANCE_PREFER_IP_ADDRESS
+              value: 'true'
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: company-db
+  name: company-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: company-db
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: company-db
+    spec:
+      containers:
+        - image: postgres:latest
+          name: postgres
+          resources: {}
+          env:
+            - name: POSTGRES_USER
+              value: developer
+            - name: POSTGRES_PASSWORD
+              value: dev123
+            - name: POSTGRES_DB
+              value: project_management_company
+            - name: PGPORT
+              value: '5432'
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: company-api
+  name: company-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: company-api
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: company-api
+    spec:
+      containers:
+        - image: afroze9/company-api
+          name: company-api
+          resources: {}
+          env:
+            - name: COMPANY_API_PORT
+              value: '8031'
+            - name: JWK_SET_URI
+              value: https://afrozeprojectmanagement.us.auth0.com/.well-known/jwks.json
+            - name: ISSUER_URI
+              value: https://afrozeprojectmanagement.us.auth0.com/
+            - name: DISCOVERY_SERVER_ZONE
+              value: http://discovery-server:8761/eureka
+            - name: COMPANY_DB_SOURCE
+              value: jdbc:postgresql://company-db:5432/project_management_company
+            - name: COMPANY_DB_USERNAME
+              value: developer
+            - name: COMPANY_DB_PASSWORD
+              value: dev123
+            - name: EUREKA_INSTANCE_PREFER_IP_ADDRESS
+              value: 'true'
+            - name: ZIPKIN_SERVER_URL
+              value: http://zipkin-server:9411/
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: project-db
+  name: project-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: project-db
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: project-db
+    spec:
+      containers:
+        - image: postgres:latest
+          name: postgres
+          resources: {}
+          env:
+            - name: POSTGRES_USER
+              value: developer
+            - name: POSTGRES_PASSWORD
+              value: dev123
+            - name: POSTGRES_DB
+              value: project_management_project
+            - name: PGPORT
+              value: '5432'
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: project-api
+  name: project-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: project-api
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: project-api
+    spec:
+      containers:
+        - image: afroze9/project-api
+          name: project-api
+          resources: {}
+          env:
+            - name: PROJECT_API_PORT
+              value: '8032'
+            - name: JWK_SET_URI
+              value: https://afrozeprojectmanagement.us.auth0.com/.well-known/jwks.json
+            - name: ISSUER_URI
+              value: https://afrozeprojectmanagement.us.auth0.com/
+            - name: DISCOVERY_SERVER_ZONE
+              value: http://discovery-server:8761/eureka
+            - name: PROJECT_DB_SOURCE
+              value: jdbc:postgresql://project-db:5432/project_management_project
+            - name: PROJECT_DB_USERNAME
+              value: developer
+            - name: PROJECT_DB_PASSWORD
+              value: dev123
+            - name: EUREKA_INSTANCE_PREFER_IP_ADDRESS
+              value: 'true'
+            - name: ZIPKIN_SERVER_URL
+              value: http://zipkin-server:9411/
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: zipkin-server
+  name: zipkin-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zipkin-server
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: zipkin-server
+    spec:
+      containers:
+        - image: openzipkin/zipkin:latest
+          name: zipkin-server
+          resources: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: discovery-server
+  name: discovery-server
+spec:
+  ports:
+    - name: 8761-8761
+      port: 8761
+      protocol: TCP
+      targetPort: 8761
+  selector:
+    app: discovery-server
+  type: LoadBalancer
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: api-gateway
+  name: api-gateway
+spec:
+  ports:
+    - name: 8012-8012
+      port: 8012
+      protocol: TCP
+      targetPort: 8012
+  selector:
+    app: api-gateway
+  type: LoadBalancer
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: company-db
+  name: company-db
+spec:
+  ports:
+    - name: 5432-5432
+      port: 5432
+      protocol: TCP
+      targetPort: 5432
+  selector:
+    app: company-db
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: company-api
+  name: company-api
+spec:
+  ports:
+    - name: 8031-8031
+      port: 8031
+      protocol: TCP
+      targetPort: 8031
+  selector:
+    app: company-api
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: project-db
+  name: project-db
+spec:
+  ports:
+    - name: 5432-5432
+      port: 5432
+      protocol: TCP
+      targetPort: 5432
+  selector:
+    app: project-db
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: project-api
+  name: project-api
+spec:
+  ports:
+    - name: 8032-8032
+      port: 8032
+      protocol: TCP
+      targetPort: 8032
+  selector:
+    app: project-api
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: zipkin-server
+  name: zipkin-server
+spec:
+  ports:
+  - name: 9411-9411
+    port: 9411
+    protocol: TCP
+    targetPort: 9411
+  selector:
+    app: zipkin-server
+  type: LoadBalancer
